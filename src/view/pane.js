@@ -392,7 +392,7 @@ Candy.View.Pane = (function(self, $) {
 				}
 				$('#chat-statusmessage-control').click(self.Chat.Toolbar.onStatusMessageControlClick);
 				if(Candy.Util.cookieExists('candy-nostatusmessages')) {
-					$('#chat-statusmessage-control').click();
+					$('#chat-statusmessage-control').click(); // XXX #nostatusmessages: clean that
 				}
 			},
 
@@ -501,10 +501,10 @@ Candy.View.Pane = (function(self, $) {
 			onStatusMessageControlClick: function() {
 				var control = $('#chat-statusmessage-control');
 				if(control.hasClass('checked')) {
-					self.Chat.infoMessage = function() {};
+					self.Chat.infoMessage = function() {}; // XXX #nostatusmessages: clean that
 					Candy.Util.setCookie('candy-nostatusmessages', '1', 365);
 				} else {
-					self.Chat.infoMessage = function(roomJid, subject, message) {
+					self.Chat.infoMessage = function(roomJid, subject, message) { // XXX #nostatusmessages: clean that
 						self.Chat.onInfoMessage(roomJid, subject, message);
 					};
 					Candy.Util.deleteCookie('candy-nostatusmessages');
@@ -938,7 +938,7 @@ Candy.View.Pane = (function(self, $) {
 				return {
 					'private': {
 						requiredPermission: function(user, me) {
-							return me.getNick() !== user.getNick() && Candy.Core.getRoom(Candy.View.getCurrent().roomJid) && !Candy.Core.getUser().isInPrivacyList('ignore', user.getJid());
+							return me.getNick() !== user.getNick() && Candy.Core.getRoom(Candy.View.getCurrent().roomJid) && !Candy.Core.getUser().isInPrivacyList('ignore', user.getJid(), user);
 						},
 						'class' : 'private',
 						'label' : $.i18n._('privateActionLabel'),
@@ -948,7 +948,7 @@ Candy.View.Pane = (function(self, $) {
 					},
 					'ignore': {
 						requiredPermission: function(user, me) {
-							return me.getNick() !== user.getNick() && !Candy.Core.getUser().isInPrivacyList('ignore', user.getJid());
+							return me.getNick() !== user.getNick() && !Candy.Core.getUser().isInPrivacyList('ignore', user.getJid(), user);
 						},
 						'class' : 'ignore',
 						'label' : $.i18n._('ignoreActionLabel'),
@@ -958,7 +958,7 @@ Candy.View.Pane = (function(self, $) {
 					},
 					'unignore': {
 						requiredPermission: function(user, me) {
-							return me.getNick() !== user.getNick() && Candy.Core.getUser().isInPrivacyList('ignore', user.getJid());
+							return me.getNick() !== user.getNick() && Candy.Core.getUser().isInPrivacyList('ignore', user.getJid(), user);
 						},
 						'class' : 'unignore',
 						'label' : $.i18n._('unignoreActionLabel'),
@@ -1141,6 +1141,7 @@ Candy.View.Pane = (function(self, $) {
 
 		/** Function: show
 		 * Show a specific room and hides the other rooms (if there are any)
+		 * XXX: Must record the last opened one, and only toggle the two, fixing the XXX below, and throwing the hacky test on the ID attr
 		 *
 		 * Parameters:
 		 *   (String) roomJid - room jid to show
@@ -1179,7 +1180,7 @@ Candy.View.Pane = (function(self, $) {
 				} else {
 					elem.hide();
 
-					var evtData = {'roomJid': roomJid, 'element' : elem};
+					var evtData = {'roomJid': roomJid, 'element' : elem}; // XXX: bug: roomJid is the shown, not the currently hided
 					// deprecated
 					Candy.View.Event.Room.onHide(evtData);
 
@@ -1420,7 +1421,7 @@ Candy.View.Pane = (function(self, $) {
 		 *   (String) userJid - User which should be ignored
 		 */
 		ignoreUser: function(roomJid, userJid) {
-			Candy.Core.Action.Jabber.Room.IgnoreUnignore(userJid);
+			Candy.Core.Action.Jabber.Room.Ignore(userJid);
 			Candy.View.Pane.Room.addIgnoreIcon(roomJid, userJid);
 		},
 
@@ -1432,7 +1433,7 @@ Candy.View.Pane = (function(self, $) {
 		 *   (String) userJid - User which should be unignored
 		 */
 		unignoreUser: function(roomJid, userJid) {
-			Candy.Core.Action.Jabber.Room.IgnoreUnignore(userJid);
+			Candy.Core.Action.Jabber.Room.Unignore(userJid);
 			Candy.View.Pane.Room.removeIgnoreIcon(roomJid, userJid);
 		},
 
@@ -1499,7 +1500,7 @@ Candy.View.Pane = (function(self, $) {
 		 * Opens a new private room
 		 *
 		 * Parameters:
-		 *   (String) roomJid - Room jid to open
+		 *   (String) occupantJidOrUserJid - Room jid to open
 		 *   (String) roomName - Room name
 		 *   (Boolean) switchToRoom - If true, displayed room switches automatically to this room
 		 *                            (e.g. when user clicks itself on another user to open a private chat)
@@ -1507,33 +1508,52 @@ Candy.View.Pane = (function(self, $) {
 		 *										then the username is the node and not the resource. This param addresses this case.
 		 *
 		 * Triggers:
-		 *   candy:view.private-room.after-open using {roomJid, type, element}
+		 *   candy:view.private-room.after-open using {occupantJidOrUserJid, type, element}
 		 */
-		open: function(roomJid, roomName, switchToRoom, isNoConferenceRoomJid) {
-			var user = isNoConferenceRoomJid ? Candy.Core.getUser() : self.Room.getUser(Strophe.getBareJidFromJid(roomJid));
-			// if target user is in privacy list, don't open the private chat.
-			if (Candy.Core.getUser().isInPrivacyList('ignore', roomJid)) {
-				return false;
-			}
-			if(!self.Chat.rooms[roomJid]) {
-				self.Room.init(roomJid, roomName, 'chat');
-			}
-			if(switchToRoom) {
-				self.Room.show(roomJid);
+		open: function(occupantJidOrUserJid, roomName, switchToRoom, isNoConferenceRoomJid) {
+			// HACK to redirect private IM to real_jid room if available
+			var nick = Strophe.getResourceFromJid(occupantJidOrUserJid);
+			var fromRoomJid = Strophe.getBareJidFromJid(occupantJidOrUserJid);
+			var fromRoom = Candy.Core.getRoom(fromRoomJid);
+			if(fromRoom && fromRoom.isMUC) {
+				var to_user = fromRoom.getRoster().findByNick(nick);
+				if(to_user && to_user.data.real_jid) {
+					console.warn('Redirect private chat on known real_jid', occupantJidOrUserJid, nick, to_user.data.real_jid);
+					isNoConferenceRoomJid = true;
+					occupantJidOrUserJid = Strophe.getBareJidFromJid(to_user.data.real_jid);
+				}
+			} else { // "bob@localhost/resource" => open "bob@localhost" private chat
+				isNoConferenceRoomJid = true;
+				occupantJidOrUserJid = fromRoomJid;
 			}
 
-			self.Roster.update(roomJid, new Candy.Core.ChatUser(roomJid, roomName), 'join', user);
-			self.Roster.update(roomJid, user, 'join', user);
-			self.PrivateRoom.setStatus(roomJid, 'join');
+			var user = isNoConferenceRoomJid ? Candy.Core.getUser() : self.Room.getUser(fromRoomJid);
+			// if target user is in privacy list, don't open the private chat.
+			if (Candy.Core.getUser().isInPrivacyList('ignore', occupantJidOrUserJid, to_user)) {
+				return false;
+			}
+
+			var wasClosed = false;
+			if(!self.Chat.rooms[occupantJidOrUserJid]) {
+				self.Room.init(occupantJidOrUserJid, roomName, 'chat');
+				wasClosed = true;
+			}
+			if(switchToRoom) {
+				self.Room.show(occupantJidOrUserJid);
+			}
+
+			self.Roster.update(occupantJidOrUserJid, new Candy.Core.ChatUser(occupantJidOrUserJid, roomName), 'join', user);
+			self.Roster.update(occupantJidOrUserJid, user, 'join', user);
+			self.PrivateRoom.setStatus(occupantJidOrUserJid, 'join');
 
 
 
 			// We can't track the presence of a user if it's not a conference jid
-			if(isNoConferenceRoomJid) {
-				self.Chat.infoMessage(roomJid, $.i18n._('presenceUnknownWarningSubject'), $.i18n._('presenceUnknownWarning'));
+			if(isNoConferenceRoomJid && !wasClosed) { // don't remind this each time (because of HACK#IMnorm)
+	//			self.Chat.infoMessage(occupantJidOrUserJid, $.i18n._('presenceUnknownWarningSubject'), $.i18n._('presenceUnknownWarning')); // TODO
 			}
 
-			var evtData = {'roomJid': roomJid, type: 'chat', 'element': self.Room.getPane(roomJid)};
+			var evtData = {'roomJid': occupantJidOrUserJid, type: 'chat', 'element': self.Room.getPane(occupantJidOrUserJid)};
 
 			// deprecated
 			Candy.View.Event.Room.onAdd(evtData);
@@ -1542,11 +1562,13 @@ Candy.View.Pane = (function(self, $) {
 			 * After opening a new private room
 			 *
 			 * Parameters:
-			 *   (String) roomJid - Room JID
+			 *   (String) occupantJidOrUserJid - Room JID
 			 *   (String) type - 'chat'
 			 *   (jQuery.Element) element - User element
 			 */
 			$(Candy).triggerHandler('candy:view.private-room.after-open', evtData);
+
+			return occupantJidOrUserJid;
 		},
 
 		/** Function: setStatus
@@ -1691,7 +1713,7 @@ Candy.View.Pane = (function(self, $) {
 				});
 
 				// check if current user is ignoring the user who has joined.
-				if (currentUser !== undefined && currentUser.isInPrivacyList('ignore', user.getJid())) {
+				if (currentUser !== undefined && currentUser.isInPrivacyList('ignore', user.getJid(), user)) {
 					Candy.View.Pane.Room.addIgnoreIcon(roomJid, user.getJid());
 				}
 
@@ -1791,13 +1813,17 @@ Candy.View.Pane = (function(self, $) {
 		 *   candy:view.message.before-send using {message}
 		 */
 		submit: function(event) {
-			var roomType = Candy.View.Pane.Chat.rooms[Candy.View.getCurrent().roomJid].type,
+
+
+			var roomJid = Candy.View.getCurrent().roomJid;
+			var roomView = Candy.View.Pane.Chat.rooms[roomJid];
+			var roomType = roomView.type,
 				message = $(this).children('.field').val().substring(0, Candy.View.getOptions().crop.message.body);
 
 			// deprecated
 			message = Candy.View.Event.Message.beforeSend(message);
 
-			var evtData = {message: message};
+			var evtData = {message: message, roomJid: roomJid};
 
 			/** Event: candy:view.message.before-send
 			 * Before sending a message
@@ -1807,13 +1833,16 @@ Candy.View.Pane = (function(self, $) {
 			 */
 			$(Candy).triggerHandler('candy:view.message.before-send', evtData);
 
-			message = evtData.message;
+			if(!evtData.cancel) { // a kind of evt.preventDefault() stuff
+				message = evtData.message;
 
-			Candy.Core.Action.Jabber.Room.Message(Candy.View.getCurrent().roomJid, message, roomType);
-			// Private user chat. Jabber won't notify the user who has sent the message. Just show it as the user hits the button...
-			if(roomType === 'chat' && message) {
-				self.Message.show(Candy.View.getCurrent().roomJid, self.Room.getUser(Candy.View.getCurrent().roomJid).getNick(), message);
+				Candy.Core.Action.Jabber.Room.Message(roomJid, message, roomType);
+				// Private user chat. Jabber won't notify the user who has sent the message. Just show it as the user hits the button...
+				if(roomType === 'chat' && message) {
+					self.Message.show(roomJid, self.Room.getUser(roomJid).getNick(), message);
+				}
 			}
+
 			// Clear input and set focus to it
 			$(this).children('.field').val('').focus();
 			event.preventDefault();
@@ -1887,7 +1916,11 @@ Candy.View.Pane = (function(self, $) {
 				event.preventDefault();
 				// Check if user is online and not myself
 				var room = Candy.Core.getRoom(roomJid);
-				if(room && name !== self.Room.getUser(Candy.View.getCurrent().roomJid).getNick() && room.getRoster().get(roomJid + '/' + name)) {
+				//var userJid = self.Room.getPane(roomJid, '.roster-pane').find('[data-nick="'+name+'"]').attr('data-jid'); // XXX: HACK.
+				if(room && name !== self.Room.getUser(roomJid).getNick() && room.getRoster().get(name)) {
+					// Candy.View.Pane.PrivateRoom.open(roomJid + '/' + name, name, true); // XXX: should call Candy.View.Pane.PrivateRoom.open(userJid, name, true, true) when the room is not anonymous.. but we need the sender data, here we only have name...
+
+					//Candy.View.Pane.PrivateRoom.open(userJid, name, true, true);
 					Candy.View.Pane.PrivateRoom.open(roomJid + '/' + name, name, true);
 				}
 			});

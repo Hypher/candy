@@ -61,4 +61,33 @@ Candy.Core.ChatRoster = function () {
 	this.getAll = function() {
 		return this.items;
 	};
+
+	this.findByJid = function(jid, strict) {
+		if(!strict)
+			jid = Strophe.getBareJidFromJid(jid); // use bare jid
+		for(var cid in this.items) {
+			if(this.items[cid].data.real_jid && Strophe.getBareJidFromJid(this.items[cid].data.real_jid) == jid)
+				return this.items[cid];
+		}
+
+		return undefined;
+	};
+
+	this.findByNick = function(nick, strict) { // should simply look for "roomJid/"+nick, but does not hold roomJid, so..
+		for(var cid in this.items) {
+			if(this.items[cid].getNick() == nick || !strict && this.items[cid].getNick().toLowerCase() == nick.toLowerCase())
+				return this.items[cid];
+		}
+	};
+
+	this.findNicksThatStartWith = function(part) {
+		var list = [];
+		part = part.toLowerCase();
+		for(var cid in this.items) {
+			var nick = this.items[cid].getNick();
+			if(nick.substr(0, part.length).toLowerCase() == part)
+				list.push(nick);
+		}
+		return list;
+	}
 };

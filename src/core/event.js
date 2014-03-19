@@ -196,7 +196,7 @@ Candy.Core.Event = (function(self, Strophe, $) {
 			$('list[name="ignore"] item', msg).each(function() {
 				var item = $(this);
 				if (item.attr('action') === 'deny') {
-					currentUser.addToOrRemoveFromPrivacyList('ignore', item.attr('value'));
+					currentUser.addToOrRemoveFromPrivacyList('ignore', item.attr('value'), true);
 				}
 			});
 			Candy.Core.Action.Jabber.SetIgnoreListActive();
@@ -362,7 +362,8 @@ Candy.Core.Event = (function(self, Strophe, $) {
 
 				// Client joined a room
 				if(!Candy.Core.getRooms()[roomJid]) {
-					Candy.Core.getRooms()[roomJid] = new Candy.Core.ChatRoom(roomJid);
+					//Candy.Core.getRooms()[roomJid] = new Candy.Core.ChatRoom(roomJid); // I DONT think so
+					return;
 				}
 				// Room existed but room name was unknown
 				var roomName = msg.find('identity').attr('name'),
@@ -394,18 +395,23 @@ Candy.Core.Event = (function(self, Strophe, $) {
 					roomJid = Strophe.getBareJidFromJid(from),
 					presenceType = msg.attr('type');
 
+				var isMUC = !!msg.find('> x[xmlns="http://jabber.org/protocol/muc#user"]').length; // This is a HACK. Should rely on the disco response about the entity
+
 				// Client left a room
-				if(Strophe.getResourceFromJid(from) === Candy.Core.getUser().getNick() && presenceType === 'unavailable') {
+				var myself = (msg.find('> x > status').attr('code') == 110);
+				if(/*Strophe.getResourceFromJid(from) === Candy.Core.getUser().getNick() &&*/ presenceType === 'unavailable' && myself) {
 					self.Jabber.Room.Leave(msg);
 					return true;
 				}
 
 				// Client joined a room
 				var room = Candy.Core.getRoom(roomJid);
-				if(!room) {
+				if(!room) { // auto-create room on presence
 					Candy.Core.getRooms()[roomJid] = new Candy.Core.ChatRoom(roomJid);
 					room = Candy.Core.getRoom(roomJid);
 				}
+				if(!room.isMUC && isMUC) // HACK
+					room.isMUC = true;
 
 				var roster = room.getRoster(),
 					action, user,
@@ -414,8 +420,9 @@ Candy.Core.Event = (function(self, Strophe, $) {
 				if(presenceType !== 'unavailable') {
 					var nick = Strophe.getResourceFromJid(from);
 					user = new Candy.Core.ChatUser(from, nick, item.attr('affiliation'), item.attr('role'));
+					user.data.real_jid = item.attr('jid'); // Store real_jid if provided
 					// Room existed but client (myself) is not yet registered
-					if(room.getUser() === null && Candy.Core.getUser().getNick() === nick) {
+					if(room.getUser() === null /*&& Candy.Core.getUser().getNick() === nick*/ && myself) {
 						room.setUser(user);
 					}
 					roster.add(user);
@@ -491,6 +498,8 @@ Candy.Core.Event = (function(self, Strophe, $) {
 					'roomJid': roomJid,
 					'roomName': roomName
 				});
+
+				return true; // Not returning true seems to unregister the whole Presence listening process...
 			},
 
 			/** Function: Message
@@ -529,6 +538,7 @@ Candy.Core.Event = (function(self, Strophe, $) {
 							// if a 3rd-party client sends a direct message to this user (not via the room) then the username is the node and not the resource.
 							isNoConferenceRoomJid = !Candy.Core.getRoom(bareRoomJid),
 							name = isNoConferenceRoomJid ? Strophe.getNodeFromJid(roomJid) : Strophe.getResourceFromJid(roomJid);
+						//console.warn('isNoConferenceRoomJid=', isNoConferenceRoomJid);
 						message = { name: name, body: msg.children('body').text(), type: msg.attr('type'), isNoConferenceRoomJid: isNoConferenceRoomJid };
 					// Multi-user chat message
 					} else {

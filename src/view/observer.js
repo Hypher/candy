@@ -173,8 +173,9 @@ Candy.View.Observer = (function(self, $) {
 		notifyPrivateChats: function(user, type) {
 			Candy.Core.log('[View:Observer] notify Private Chats');
 			var roomJid;
-			for(roomJid in Candy.View.Pane.Chat.rooms) {
-				if(Candy.View.Pane.Chat.rooms.hasOwnProperty(roomJid) && Candy.View.Pane.Room.getUser(roomJid) && user.getJid() === Candy.View.Pane.Room.getUser(roomJid).getJid()) {
+			for(roomJid in Candy.View.Pane.Chat.rooms) { // XXX: Candy.View.Pane.Chat.rooms is an Array instead of an Object (probably the reason of hasOwnProperty here)
+				if(Candy.View.Pane.Chat.rooms.hasOwnProperty(roomJid) && Candy.View.Pane.Room.getUser(roomJid) && user.getJid() === Candy.View.Pane.Room.getUser(roomJid).getJid()
+					&& Candy.View.Pane.Chat.rooms[roomJid].type == "chat") { // HACK?: use room type to ensure this is a private chat
 					Candy.View.Pane.Roster.update(roomJid, user, type, user);
 					Candy.View.Pane.PrivateRoom.setStatus(roomJid, type);
 				}
@@ -229,7 +230,7 @@ Candy.View.Observer = (function(self, $) {
 		} else {
 			// Initialize room if it's a message for a new private user chat
 			if(args.message.type === 'chat' && !Candy.View.Pane.Chat.rooms[args.roomJid]) {
-				Candy.View.Pane.PrivateRoom.open(args.roomJid, args.message.name, false, args.message.isNoConferenceRoomJid);
+				args.roomJid = Candy.View.Pane.PrivateRoom.open(args.roomJid, args.message.name, false, args.message.isNoConferenceRoomJid); // HACK#IMnorm: we normalize IM private rooms to bare jid, which is returned by open. Note that open is called evry time the full jid send a message because of the !Candy.View.Pane.Chat.rooms[args.roomJid] test
 			}
 			Candy.View.Pane.Message.show(args.roomJid, args.message.name, args.message.body, args.timestamp);
 		}

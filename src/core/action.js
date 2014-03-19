@@ -210,6 +210,14 @@ Candy.Core.Action = (function(self, Strophe, $) {
 				Candy.Core.getUser().addToOrRemoveFromPrivacyList('ignore', userJid);
 				Candy.Core.Action.Jabber.Room.UpdatePrivacyList();
 			},
+			Ignore: function(userJid) {
+				var changed = Candy.Core.getUser().addToOrRemoveFromPrivacyList('ignore', userJid, true);
+				if(changed) Candy.Core.Action.Jabber.Room.UpdatePrivacyList();
+			},
+			Unignore: function(userJid) {
+				var changed = Candy.Core.getUser().addToOrRemoveFromPrivacyList('ignore', userJid, false);
+				if(changed) Candy.Core.Action.Jabber.Room.UpdatePrivacyList();
+			},
 
 			/** Function: UpdatePrivacyList
 			 * Updates privacy list according to the privacylist in the currentUser
@@ -258,6 +266,10 @@ Candy.Core.Action = (function(self, Strophe, $) {
 						case 'ban':
 							iqId = 'ban1';
 							itemObj.affiliation = 'outcast';
+							break;
+						case 'unban':
+							iqId = 'unban1';
+							itemObj.affiliation = 'none';
 							break;
 						default:
 							return false;

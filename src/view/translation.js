@@ -184,7 +184,7 @@ Candy.View.Translation = {
 		'userHasBeenBannedFromRoom': '%s a été banni du salon.',
 
 		'presenceUnknownWarningSubject': 'Note :',
-		'presenceUnknownWarning'       : 'Cet utilisateur n\'est malheureusement plus connecté, le message ne sera pas envoyé.',
+		'presenceUnknownWarning'       : 'il est impossible de déterminer si cet utilisateur est en ligne actuellement.',
 
 		'dateFormat': 'dd/mm/yyyy',
 		'timeFormat': 'HH:MM:ss',

@@ -112,6 +112,8 @@ Candy.Core = (function(self, Strophe, $) {
 			};
 			self.log('[Init] Debugging enabled');
 		}
+		if(_options.resource)
+			Candy.about.name = _options.resource; // TODO: clean that
 
 		_addNamespaces();
 		// Connect to BOSH service

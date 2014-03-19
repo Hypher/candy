@@ -590,7 +590,7 @@ var MD5 = (function () {
  *  This Function object extension method creates a bound method similar
  *  to those in Python.  This means that the 'this' object will point
  *  to the instance you want.  See
- *  <a href='https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Function/bind'>MDC's bind() documentation</a> and 
+ *  <a href='https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Function/bind'>MDC's bind() documentation</a> and
  *  <a href='http://benjamin.smedbergs.us/blog/2007-01-03/bound-functions-and-function-imports-in-javascript/'>Bound Functions and Function Imports in JavaScript</a>
  *  for a complete explanation.
  *
@@ -599,7 +599,7 @@ var MD5 = (function () {
  *
  *  Parameters:
  *    (Object) obj - The object that will become 'this' in the bound function.
- *    (Object) argN - An option argument that will be prepended to the 
+ *    (Object) argN - An option argument that will be prepended to the
  *      arguments given for the function call
  *
  *  Returns:
@@ -763,8 +763,8 @@ Strophe = {
     },
 
 
-    /** Constants: XHTML_IM Namespace 
-     *  contains allowed tags, tag attributes, and css properties. 
+    /** Constants: XHTML_IM Namespace
+     *  contains allowed tags, tag attributes, and css properties.
      *  Used in the createHtml function to filter incoming html into the allowed XHTML-IM subset.
      *  See http://xmpp.org/extensions/xep-0071.html#profile-summary for the list of recommended
      *  allowed tags and their attributes.
@@ -818,7 +818,7 @@ Strophe = {
 		}
     },
 
-    /** Function: addNamespace 
+    /** Function: addNamespace
      *  This function is used to extend the current namespaces in
      *	Strophe.NS.  It takes a key and a value with the key being the
      *	name of the new namespace, with its actual value.
@@ -968,9 +968,9 @@ Strophe = {
         var doc;
 
         // IE9 does implement createDocument(); however, using it will cause the browser to leak memory on page unload.
-        // Here, we test for presence of createDocument() plus IE's proprietary documentMode attribute, which would be 
+        // Here, we test for presence of createDocument() plus IE's proprietary documentMode attribute, which would be
 		// less than 10 in the case of IE9 and below.
-        if (document.implementation.createDocument === undefined || 
+        if (document.implementation.createDocument === undefined ||
 			document.implementation.createDocument && document.documentMode && document.documentMode < 10) {
             doc = this._getIEXmlDom();
             doc.appendChild(doc.createElement('strophe'));
@@ -1841,7 +1841,7 @@ Strophe.Handler = function (handler, ns, name, type, id, from, options)
     this.type = type;
     this.id = id;
     this.options = options || {matchbare: false};
-    
+
     // default matchBare to false if undefined
     if (!this.options.matchBare) {
         this.options.matchBare = false;
@@ -1871,7 +1871,7 @@ Strophe.Handler.prototype = {
     {
         var nsMatch;
         var from = null;
-        
+
         if (this.options.matchBare) {
             from = Strophe.getBareJidFromJid(elem.getAttribute('from'));
         } else {
@@ -2589,26 +2589,26 @@ Strophe.Connection.prototype = {
 	}
 
 	var handler = this.addHandler(function (stanza) {
-	    // remove timeout handler if there is one
-            if (timeoutHandler) {
-                that.deleteTimedHandler(timeoutHandler);
-            }
+		// remove timeout handler if there is one
+		if (timeoutHandler) {
+			that.deleteTimedHandler(timeoutHandler);
+		}
 
-            var iqtype = stanza.getAttribute('type');
-	    if (iqtype == 'result') {
-		if (callback) {
-                    callback(stanza);
-                }
-	    } else if (iqtype == 'error') {
-		if (errback) {
-                    errback(stanza);
-                }
-	    } else {
-                throw {
-                    name: "StropheError",
-                    message: "Got bad IQ type of " + iqtype
-                };
-            }
+		var iqtype = stanza.getAttribute('type');
+		if (iqtype == 'result') {
+			if (callback) {
+				callback(stanza);
+			}
+		} else if (iqtype == 'error') {
+			if (errback) {
+				errback(stanza);
+			}
+		} else {
+			throw {
+				name: "StropheError",
+				message: "Got bad IQ type of " + iqtype
+			};
+		}
 	}, null, 'iq', null, id);
 
 	// if timeout specified, setup timeout handler.
@@ -2643,7 +2643,7 @@ Strophe.Connection.prototype = {
                 message: "Cannot queue non-DOMElement."
             };
         }
-        
+
         this._data.push(element);
     },
 
@@ -3261,6 +3261,11 @@ Strophe.Connection.prototype = {
             // process handlers
             newList = that.handlers;
             that.handlers = [];
+
+			// FIX: no from <=> from = my JID (cf rfc6120 8.1.2.1)
+			if(!child.hasAttribute('from'))
+				child.setAttribute('from', that.jid);
+
             for (i = 0; i < newList.length; i++) {
                 var hand = newList[i];
                 // encapsulate 'handler.run' not to lose the whole handler list if
@@ -3275,7 +3280,8 @@ Strophe.Connection.prototype = {
                         that.handlers.push(hand);
                     }
                 } catch(e) {
-                    //if the handler throws an exception, we consider it as false
+                    //if the handler throws an exception, we consider it as false // NO! false remove the handler. Why would you remove a handler that make errors?
+                    that.handlers.push(hand); // common... user code can fail sometimes... give it a chance!
                 }
             }
         });
@@ -5213,7 +5219,7 @@ var Mustache = function() {
             this.ctag, "g");
       return template.replace(regex, function(match, pragma, options) {
         if(!that.pragmas_implemented[pragma]) {
-          throw({message: 
+          throw({message:
             "This implementation of mustache doesn't understand the '" +
             pragma + "' pragma"});
         }
@@ -5492,9 +5498,9 @@ var Mustache = function() {
  * i18n property list
  */
 $.i18n = {
-	
+
 	dict: null,
-	
+
 /**
  * setDictionary()
  * Initialise the dictionary and translate nodes
@@ -5504,14 +5510,14 @@ $.i18n = {
 	setDictionary: function(i18n_dict) {
 		this.dict = i18n_dict;
 	},
-	
+
 /**
  * _()
- * The actual translation function. Looks the given string up in the 
- * dictionary and returns the translation if one exists. If a translation 
+ * The actual translation function. Looks the given string up in the
+ * dictionary and returns the translation if one exists. If a translation
  * is not found, returns the original word
  *
- * @param string str : The string to translate 
+ * @param string str : The string to translate
  * @param property_list params : params for using printf() on the string
  * @return string : Translated word
  *
@@ -5523,10 +5529,10 @@ $.i18n = {
 		}
 		return this.printf(transl, params);
 	},
-	
+
 /**
  * toEntity()
- * Change non-ASCII characters to entity representation 
+ * Change non-ASCII characters to entity representation
  *
  * @param string str : The string to transform
  * @return string result : Original string with non-ASCII content converted to entities
@@ -5542,7 +5548,7 @@ $.i18n = {
 		}
 		return result;
 	},
-	
+
 /**
  * stripStr()
  *
@@ -5553,7 +5559,7 @@ $.i18n = {
  	stripStr: function(str) {
 		return str.replace(/^\s*/, "").replace(/\s*$/, "");
 	},
-	
+
 /**
  * stripStrML()
  *
@@ -5567,7 +5573,7 @@ $.i18n = {
 		var parts = str.split('\n');
 		for (var i=0; i<parts.length; i++)
 			parts[i] = stripStr(parts[i]);
-	
+
 		// Don't join with empty strings, because it "concats" words
 		// And strip again
 		return stripStr(parts.join(" "));
@@ -5612,8 +5618,8 @@ $.i18n = {
  * Allows you to translate a jQuery selector
  *
  * eg $('h1')._t('some text')
- * 
- * @param string str : The string to translate 
+ *
+ * @param string str : The string to translate
  * @param property_list params : params for using printf() on the string
  * @return element : chained and translated element(s)
 */
@@ -6005,8 +6011,8 @@ Strophe.addConnectionPlugin('disco',
 		} else {
 			this._jidVerIndex[from] = ver;
 		}
-		if (!this._jidVerIndex[from] || !this._jidVerIndex[from] !== ver) {
-			this._jidVerIndex[from] = ver;
+		if (!this._jidVerIndex[from] || !this._jidVerIndex[from] !== ver) {
+			this._jidVerIndex[from] = ver;
 		}
 		return true;
 	},
@@ -6026,8 +6032,8 @@ Strophe.addConnectionPlugin('disco',
 	 *   (Boolean) - true
 	 */
 	_requestCapabilities: function(to, node, ver) {
-		if (to !== this._connection.jid) {
-			var id = this._connection.disco.info(to, node + '#' + ver);
+		if (to !== this._connection.jid) {
+			var id = this._connection.disco.info(to, node + '#' + ver);
 			this._connection.addHandler(this._handleDiscoInfoReply.bind(this), Strophe.NS.DISCO_INFO, 'iq', 'result', id, to);
 		}
 		return true;
@@ -6049,16 +6055,16 @@ Strophe.addConnectionPlugin('disco',
 			ver = node[1],
 			from = stanza.getAttribute('from');
 		if (!this._knownCapabilities[ver]) {
-			var childNodes = query.childNodes,
-				childNodesLen = childNodes.length;
-			this._knownCapabilities[ver] = [];
+			var childNodes = query.childNodes,
+				childNodesLen = childNodes.length;
+			this._knownCapabilities[ver] = [];
 			for(var i = 0; i < childNodesLen; i++) {
-				var node = childNodes[i];
-				this._knownCapabilities[ver].push({name: node.nodeName, attributes: node.attributes});
+				var node = childNodes[i];
+				this._knownCapabilities[ver].push({name: node.nodeName, attributes: node.attributes});
 			}
 			this._jidVerIndex[from] = ver;
-		} else if (!this._jidVerIndex[from] || !this._jidVerIndex[from] !== ver) {
-			this._jidVerIndex[from] = ver;
+		} else if (!this._jidVerIndex[from] || !this._jidVerIndex[from] !== ver) {
+			this._jidVerIndex[from] = ver;
 		}
 		return false;
 	},

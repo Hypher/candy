@@ -119,20 +119,22 @@ Candy.Core.ChatUser = function(jid, nick, affiliation, role) {
 	 * Parameters:
 	 *   (String) list - To which privacy list the user should be added / removed from. Candy supports curently only the "ignore" list.
 	 *   (String) jid  - User jid to add/remove
+	 *   (Boolean) doAdd - if true, add it, if false, remove it, and else, just toggle (old silly behavior)
 	 *
 	 * Returns:
 	 *   (Array) - Current privacy list.
 	 */
-	this.addToOrRemoveFromPrivacyList = function(list, jid) {
+	this.addToOrRemoveFromPrivacyList = function(list, jid, doAdd) {
 		if (!this.data.privacyLists[list]) {
 			this.data.privacyLists[list] = [];
 		}
-		var index = -1;
-		if ((index = this.data.privacyLists[list].indexOf(jid)) !== -1) {
+		var index = this.data.privacyLists[list].indexOf(jid);
+		if (index >= 0 && doAdd !== true) { // contains and (must remove OR toggle)
 			this.data.privacyLists[list].splice(index, 1);
-		} else {
+		} else if(index == -1 && doAdd !== false) { // does not contain and (must add OR toggle)
 			this.data.privacyLists[list].push(jid);
-		}
+		} else
+			return false; // no changes
 		return this.data.privacyLists[list];
 	};
 
@@ -162,11 +164,13 @@ Candy.Core.ChatUser = function(jid, nick, affiliation, role) {
 	 * Returns:
 	 *   (Boolean)
 	 */
-	this.isInPrivacyList = function(list, jid) {
+	this.isInPrivacyList = function(list, jid, user) {
 		if (!this.data.privacyLists[list]) {
 			return false;
 		}
-		return this.data.privacyLists[list].indexOf(jid) !== -1;
+		var realJid = (user && user.data.real_jid) ? Strophe.getBareJidFromJid(user.data.real_jid) : null; // HACK: check also the real_jid if an user is provided
+		return this.data.privacyLists[list].indexOf(jid) !== -1
+			|| realJid && this.data.privacyLists[list].indexOf(realJid) !== -1;
 	};
 
 	/** Function: setCustomData
